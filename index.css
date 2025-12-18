@@ -370,9 +370,40 @@ body {
 }
 
 /* ==================== Responsive ==================== */
-@media (max-width: 768px) {
+
+/* Tablet and smaller laptops */
+@media (max-width: 1024px) {
     .container {
-        padding: 1.5rem;
+        padding: 2rem 1.5rem;
+    }
+
+    .title {
+        font-size: 3rem;
+    }
+
+    .counter-value {
+        font-size: 7rem;
+    }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+    html {
+        font-size: 15px;
+    }
+
+    .container {
+        padding: 1.5rem 1rem;
+    }
+
+    .header {
+        margin-bottom: 3rem;
+    }
+
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.9rem;
+        margin-bottom: 1.25rem;
     }
 
     .title {
@@ -384,20 +415,111 @@ body {
     }
 
     .counter-content {
-        padding: 2rem 3rem;
+        padding: 2.5rem 3.5rem;
     }
 
     .counter-value {
-        font-size: 5rem;
+        font-size: 5.5rem;
     }
 
     .counter-label {
-        font-size: 1rem;
+        font-size: 1.1rem;
     }
 
     .stats-row {
         gap: 1.5rem;
-        padding: 1.5rem 2rem;
+        padding: 1.75rem 2rem;
+    }
+
+    .stat-value {
+        font-size: 2.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .stat-divider {
+        height: 35px;
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 480px) {
+    html {
+        font-size: 14px;
+    }
+
+    body {
+        padding: 1rem 0;
+    }
+
+    .container {
+        padding: 1rem 0.75rem;
+    }
+
+    .header {
+        margin-bottom: 2.5rem;
+    }
+
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .badge::before {
+        width: 6px;
+        height: 6px;
+    }
+
+    .title {
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+        font-size: 0.9rem;
+    }
+
+    .main {
+        margin-bottom: 1rem;
+    }
+
+    .counter-card {
+        margin-bottom: 2rem;
+    }
+
+    .counter-glow {
+        width: 140%;
+        height: 140%;
+        filter: blur(30px);
+    }
+
+    .counter-content {
+        padding: 2rem 2.5rem;
+        border-radius: 20px;
+    }
+
+    .counter-value {
+        font-size: 4rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .counter-label {
+        font-size: 1rem;
+        letter-spacing: 0.12em;
+    }
+
+    .stats-row {
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1.5rem 1.25rem;
+        border-radius: 16px;
+    }
+
+    .stat-item {
+        gap: 0.4rem;
     }
 
     .stat-value {
@@ -407,37 +529,117 @@ body {
     .stat-label {
         font-size: 0.75rem;
     }
+
+    .stat-divider {
+        width: 80px;
+        height: 1px;
+        background: linear-gradient(to right,
+                transparent,
+                rgba(255, 255, 255, 0.15),
+                transparent);
+    }
 }
 
-@media (max-width: 480px) {
-    .header {
-        margin-bottom: 3rem;
+/* Small mobile devices */
+@media (max-width: 360px) {
+    html {
+        font-size: 13px;
     }
 
     .title {
-        font-size: 2rem;
+        font-size: 1.75rem;
     }
 
     .counter-content {
-        padding: 1.5rem 2rem;
+        padding: 1.75rem 2rem;
     }
 
     .counter-value {
         font-size: 3.5rem;
     }
 
+    .counter-label {
+        font-size: 0.95rem;
+    }
+
     .stats-row {
-        flex-direction: column;
-        gap: 1.5rem;
-        padding: 1.5rem;
+        padding: 1.25rem 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    body {
+        padding: 0.5rem 0;
+    }
+
+    .header {
+        margin-bottom: 2rem;
+    }
+
+    .badge {
+        margin-bottom: 0.75rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 0.85rem;
+    }
+
+    .counter-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .counter-content {
+        padding: 1.5rem 3rem;
+    }
+
+    .counter-value {
+        font-size: 4rem;
+    }
+
+    .stats-row {
+        flex-direction: row;
+        padding: 1.25rem 1.5rem;
     }
 
     .stat-divider {
-        width: 60px;
-        height: 1px;
-        background: linear-gradient(to right,
-                transparent,
-                rgba(255, 255, 255, 0.1),
-                transparent);
+        width: 1px;
+        height: 30px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+
+    .counter-content,
+    .stat-item {
+        /* Larger touch targets */
+        min-height: 44px;
+    }
+
+    /* Remove hover effects on touch devices */
+    .counter-content:hover {
+        transform: none;
+    }
+
+    .stat-item:hover {
+        transform: none;
+    }
+
+    /* Add active states instead */
+    .counter-content:active {
+        transform: scale(0.98);
+    }
+
+    .stat-item:active {
+        transform: scale(0.95);
     }
 }
