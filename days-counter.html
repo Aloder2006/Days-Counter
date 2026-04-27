@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Days Counter – Since January 18, 2023">
+  <meta name="theme-color" content="#ebe5dc">
+  <title>Days Counter | Since January 18, 2023</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@100;200;300;400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
+    :root {
+      --bg:       #ebe5dc;
+      --surface:  rgba(255, 251, 246, 0.38);
+      --text-1:   #342c22;
+      --text-2:   #7d7166;
+      --text-3:   #aaa098;
+      --rose:     #c2a09a;
+      --sage:     #8aa389;
+      --gold:     #c8a87c;
+      --mauve:    #a898b6;
+      --border:   rgba(178, 163, 145, 0.22);
+    }
+
+    /* ============================================================
+       RESET
+    ============================================================ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Jost', sans-serif;
+      cursor: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       THREE.JS CANVAS
+    ============================================================ */
+    #canvas3d {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      display: block;
+    }
+
+    /* ============================================================
+       FILM GRAIN OVERLAY
+    ============================================================ */
+    .grain {
+      position: fixed;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      z-index: 1;
+      opacity: 0.038;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      animation: grain 9s steps(10) infinite;
+    }
+    @keyframes grain {
+      0%,100% { transform: translate(0,0) }
+      10%  { transform: translate(-2%,-3%) }
+      20%  { transform: translate(-5%,2%) }
+      30%  { transform: translate(3%,-4%) }
+      40%  { transform: translate(-3%,5%) }
+      50%  { transform: translate(5%,1%) }
+      60%  { transform: translate(2%,4%) }
+      70%  { transform: translate(-4%,-2%) }
+      80%  { transform: translate(4%,3%) }
+      90%  { transform: translate(-1%,-5%) }
+    }
+
+    /* ============================================================
+       CUSTOM CURSOR
+    ============================================================ */
+    #cursor {
+      position: fixed;
+      width: 7px; height: 7px;
+      background: var(--gold);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform 0.06s;
+      mix-blend-mode: multiply;
+    }
+    #cursor.click { transform: translate(-50%,-50%) scale(1.8); }
+    #cursor-ring {
+      position: fixed;
+      width: 28px; height: 28px;
+      border: 1px solid var(--rose);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: left 0.12s ease, top 0.12s ease, transform 0.2s;
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       CORNER LABELS
+    ============================================================ */
+    .corner {
+      position: fixed;
+      z-index: 20;
+      pointer-events: none;
+      font-family: 'Jost', sans-serif;
+      font-weight: 200;
+      font-size: 0.58rem;
+      color: var(--text-3);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      line-height: 2;
+      white-space: pre-line;
+    }
+    .corner::before {
+      content: '';
+      display: block;
+      width: 1.6rem;
+      height: 0.5px;
+      background: var(--border);
+      margin-bottom: 0.45rem;
+    }
+    .corner.tl { top: 1.8rem; left: 1.8rem; }
+    .corner.tr { top: 1.8rem; right: 1.8rem; text-align: right; }
+    .corner.tr::before { margin-left: auto; }
+    .corner.bl { bottom: 1.8rem; left: 1.8rem; }
+    .corner.br { bottom: 1.8rem; right: 1.8rem; text-align: right; }
+    .corner.br::before { margin-left: auto; }
+
+    /* ============================================================
+       MAIN SCENE LAYER
+    ============================================================ */
+    .scene {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    .header {
+      text-align: center;
+      margin-bottom: clamp(2.5rem, 5vh, 4rem);
+      opacity: 0;
+      transform: translateY(-18px);
+    }
+    .site-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(0.62rem, 1.2vw, 0.78rem);
+      color: var(--text-2);
+      letter-spacing: 0.6em;
+      text-transform: uppercase;
+    }
+    .site-sub {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(0.66rem, 1.1vw, 0.8rem);
+      color: var(--rose);
+      letter-spacing: 0.18em;
+      margin-top: 0.35rem;
+    }
+
+    /* ============================================================
+       CENTRAL ORRERY
+    ============================================================ */
+    .orrery {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+    }
+
+    /* CSS orbital rings */
+    .orb-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .orb-ring-1 {
+      width:  clamp(240px, 46vw, 380px);
+      height: clamp(240px, 46vw, 380px);
+      border: 1px solid rgba(194,160,154,0.14);
+      animation: orbit-spin 48s linear infinite;
+    }
+    .orb-ring-2 {
+      width:  clamp(300px, 58vw, 470px);
+      height: clamp(300px, 58vw, 470px);
+      border: 1px solid rgba(138,163,137,0.10);
+      animation: orbit-spin 68s linear infinite reverse;
+    }
+    .orb-ring-3 {
+      width:  clamp(360px, 70vw, 560px);
+      height: clamp(360px, 70vw, 560px);
+      border: 1px solid rgba(168,152,182,0.07);
+      animation: orbit-spin 88s linear infinite;
+    }
+    /* Marker dot on each ring */
+    .orb-ring::after {
+      content: '';
+      position: absolute;
+      top: -3.5px; left: 50%;
+      transform: translateX(-50%);
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .orb-ring-1::after { background: var(--rose);  opacity: 0.85; box-shadow: 0 0 8px var(--rose); }
+    .orb-ring-2::after { background: var(--sage);  opacity: 0.75; box-shadow: 0 0 8px var(--sage); }
+    .orb-ring-3::after { background: var(--mauve); opacity: 0.55; box-shadow: 0 0 8px var(--mauve); }
+    @keyframes orbit-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+       MAIN NUMBER
+    ============================================================ */
+    .num-wrap {
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    /* Ambient glow behind number */
+    .num-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -25%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(200,168,124,0.055) 0%, transparent 68%);
+      pointer-events: none;
+    }
+    .num-main {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(6.5rem, 19vw, 14.5rem);
+      color: var(--text-1);
+      line-height: 0.86;
+      letter-spacing: -0.025em;
+      position: relative;
+    }
+    .num-label {
+      font-family: 'Jost', sans-serif;
+      font-weight: 100;
+      font-size: clamp(0.52rem, 0.9vw, 0.68rem);
+      color: var(--gold);
+      letter-spacing: 0.48em;
+      text-transform: uppercase;
+      margin-top: 0.9rem;
+    }
+
+    /* ============================================================
+       STATS BAR
+    ============================================================ */
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      margin-top: clamp(2.5rem, 4.5vh, 3.5rem);
+      background: var(--surface);
+      backdrop-filter: blur(28px) saturate(1.6);
+      -webkit-backdrop-filter: blur(28px) saturate(1.6);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.85rem 2.8rem;
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    .sbar-item {
+      text-align: center;
+      padding: 0 2.2rem;
+    }
+    .sbar-val {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: clamp(1.35rem, 2.8vw, 1.9rem);
+      color: var(--text-1);
+      line-height: 1;
+    }
+    .sbar-lbl {
+      font-family: 'Jost', sans-serif;
+      font-weight: 200;
+      font-size: 0.52rem;
+      color: var(--text-3);
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      margin-top: 0.22rem;
+    }
+    .sbar-sep {
+      width: 0.5px;
+      height: 1.6rem;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       BOTTOM ORBITAL LEGEND
+    ============================================================ */
+    .legend {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      opacity: 0;
+      transition: opacity 1s;
+      pointer-events: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .legend-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .ld-rose  { background: var(--rose); }
+    .ld-sage  { background: var(--sage); }
+    .ld-mauve { background: var(--mauve); }
+    .legend-txt {
+      font-family: 'Jost', sans-serif;
+      font-weight: 200;
+      font-size: 0.5rem;
+      color: var(--text-3);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+    .legend-pipe {
+      width: 0.5px;
+      height: 0.6rem;
+      background: var(--border);
+    }
+
+    /* ============================================================
+       MOBILE
+    ============================================================ */
+    @media (max-width: 580px) {
+      .corner { display: none; }
+      .stats-bar { padding: 0.75rem 1.4rem; }
+      .sbar-item { padding: 0 1rem; }
+      .legend { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js canvas (background layer) -->
+  <canvas id="canvas3d"></canvas>
+
+  <!-- Film grain -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Custom cursor -->
+  <div id="cursor"      aria-hidden="true"></div>
+  <div id="cursor-ring" aria-hidden="true"></div>
+
+  <!-- Corner labels -->
+  <div class="corner tl" aria-hidden="true">Time&#10;Counter</div>
+  <div class="corner tr" aria-hidden="true">18 Jan&#10;2023</div>
+  <div class="corner bl" id="corner-bl" aria-hidden="true"></div>
+  <div class="corner br" aria-hidden="true">Journey&#10;Continues</div>
+
+  <!-- Main UI scene -->
+  <div class="scene" role="main">
+
+    <header class="header" id="header">
+      <h1 class="site-title">Days Counter</h1>
+      <p class="site-sub">Since January 18, 2023</p>
+    </header>
+
+    <div class="orrery" id="orrery" role="region" aria-label="Days elapsed">
+      <!-- CSS orbital rings -->
+      <div class="orb-ring orb-ring-1" aria-hidden="true"></div>
+      <div class="orb-ring orb-ring-2" aria-hidden="true"></div>
+      <div class="orb-ring orb-ring-3" aria-hidden="true"></div>
+
+      <!-- The number -->
+      <div class="num-wrap">
+        <div class="num-main" id="totalDays" aria-live="polite">0</div>
+        <div class="num-label">days of journey</div>
+      </div>
+    </div>
+
+    <!-- Breakdown stats -->
+    <div class="stats-bar" id="statsBar" role="complementary" aria-label="Time breakdown">
+      <div class="sbar-item">
+        <div class="sbar-val" id="years">0</div>
+        <div class="sbar-lbl">Years</div>
+      </div>
+      <div class="sbar-sep" aria-hidden="true"></div>
+      <div class="sbar-item">
+        <div class="sbar-val" id="months">0</div>
+        <div class="sbar-lbl">Months</div>
+      </div>
+      <div class="sbar-sep" aria-hidden="true"></div>
+      <div class="sbar-item">
+        <div class="sbar-val" id="days">0</div>
+        <div class="sbar-lbl">Days</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom orbital legend -->
+  <div class="legend" id="legend" aria-hidden="true">
+    <div class="legend-item">
+      <div class="legend-dot ld-rose"></div>
+      <span class="legend-txt">Years orbit</span>
+    </div>
+    <div class="legend-pipe"></div>
+    <div class="legend-item">
+      <div class="legend-dot ld-sage"></div>
+      <span class="legend-txt">Months orbit</span>
+    </div>
+    <div class="legend-pipe"></div>
+    <div class="legend-item">
+      <div class="legend-dot ld-mauve"></div>
+      <span class="legend-txt">Days orbit</span>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       LIBRARIES
+  ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <script>
+  /* ============================================================
+     THREE.JS — TEMPORAL ORRERY SCENE
+  ============================================================ */
+  const canvas   = document.getElementById('canvas3d');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0xebe5dc, 1);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(0, 0, 9.5);
+
+  /* Depth fog */
+  scene.fog = new THREE.FogExp2(0xebe5dc, 0.042);
+
+  /* --- Lights --- */
+  scene.add(new THREE.AmbientLight(0xfff8f0, 1.05));
+
+  const sunLight = new THREE.DirectionalLight(0xc8a87c, 0.52);
+  sunLight.position.set(7, 9, 5);
+  scene.add(sunLight);
+
+  const rimLight = new THREE.DirectionalLight(0xa898b6, 0.28);
+  rimLight.position.set(-7, -4, 3);
+  scene.add(rimLight);
+
+  const pointLight = new THREE.PointLight(0xc4a09a, 0.45, 22);
+  pointLight.position.set(0, 0, 3.5);
+  scene.add(pointLight);
+
+  /* --- Wireframe icosahedron (core geometry) --- */
+  const ico = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(2.4, 1),
+    new THREE.MeshStandardMaterial({
+      color: 0xc8bfb0,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.085,
+    })
+  );
+  scene.add(ico);
+
+  /* --- Inner ethereal sphere --- */
+  const innerSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1.3, 32, 32),
+    new THREE.MeshStandardMaterial({
+      color: 0xf2e9de,
+      transparent: true,
+      opacity: 0.10,
+      roughness: 0.5,
+      metalness: 0.04,
+    })
+  );
+  scene.add(innerSphere);
+
+  /* --- Three torus rings (the orrery arms) --- */
+  function torus(r, tube, color, opacity, rx, ry, rz) {
+    const m = new THREE.Mesh(
+      new THREE.TorusGeometry(r, tube, 8, 128),
+      new THREE.MeshStandardMaterial({ color, transparent: true, opacity, roughness: 0.88 })
+    );
+    m.rotation.set(rx, ry, rz);
+    scene.add(m);
+    return m;
+  }
+
+  const t1 = torus(3.3, 0.017, 0xc2a09a, 0.24, Math.PI*0.22, 0,          Math.PI*0.06);
+  const t2 = torus(4.1, 0.013, 0x8aa389, 0.18, Math.PI*0.36, Math.PI*0.14, 0         );
+  const t3 = torus(4.9, 0.009, 0xa898b6, 0.13, Math.PI*0.14, 0,          Math.PI*0.42);
+
+  /* --- Orbital marker dots --- */
+  function orbDot(color, r, startAngle) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.065, 12, 12),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.28, metalness: 0.18, transparent: true, opacity: 0.8 })
+    );
+    mesh.userData = { r, angle: startAngle };
+    scene.add(mesh);
+    return mesh;
+  }
+  const od1 = orbDot(0xc2a09a, 3.3, 0.0);
+  const od2 = orbDot(0x8aa389, 4.1, 2.1);
+  const od3 = orbDot(0xa898b6, 4.9, 4.3);
+
+  /* --- Ambient particle field --- */
+  const pCount = 300;
+  const pPos   = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount; i++) {
+    const rad   = 9 + Math.random() * 14;
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    pPos[i*3]   = rad * Math.sin(phi) * Math.cos(theta);
+    pPos[i*3+1] = rad * Math.sin(phi) * Math.sin(theta);
+    pPos[i*3+2] = rad * Math.cos(phi) - 1.5;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
+    color: 0xc8a87c, size: 0.032, transparent: true, opacity: 0.30,
+  }));
+  scene.add(particles);
+
+  /* --- Mouse parallax --- */
+  let mx = 0, my = 0, tmx = 0, tmy = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth  - 0.5) * 2;
+    my = (e.clientY / window.innerHeight - 0.5) * 2;
+
+    const cur  = document.getElementById('cursor');
+    const ring = document.getElementById('cursor-ring');
+    cur.style.left  = e.clientX + 'px';
+    cur.style.top   = e.clientY + 'px';
+    setTimeout(() => {
+      ring.style.left = e.clientX + 'px';
+      ring.style.top  = e.clientY + 'px';
+    }, 100);
+  });
+
+  document.addEventListener('mousedown', () =>
+    document.getElementById('cursor').classList.add('click'));
+  document.addEventListener('mouseup', () =>
+    document.getElementById('cursor').classList.remove('click'));
+
+  /* --- Main render loop --- */
+  let ct = 0;
+  (function loop() {
+    requestAnimationFrame(loop);
+    ct += 0.004;
+
+    /* Smooth mouse follow */
+    tmx += (mx  - tmx) * 0.038;
+    tmy += (my  - tmy) * 0.038;
+
+    /* Core rotation */
+    ico.rotation.x         = ct * 0.11 + tmy * 0.11;
+    ico.rotation.y         = ct * 0.17 + tmx * 0.11;
+    innerSphere.rotation.y = ct * 0.07;
+
+    /* Torus orbital rotation */
+    t1.rotation.y  =  ct * 0.28;
+    t2.rotation.y  = -ct * 0.19;
+    t2.rotation.x  = Math.PI * 0.36 + ct * 0.08;
+    t3.rotation.z  =  ct * 0.13;
+
+    /* Orbital dot positions along tilted rings */
+    function updateDot(dot, tiltX, speed) {
+      dot.userData.angle += speed * 0.005;
+      const a = dot.userData.angle;
+      const r = dot.userData.r;
+      dot.position.x = r * Math.cos(a);
+      dot.position.y = r * Math.sin(a) * Math.cos(tiltX);
+      dot.position.z = r * Math.sin(a) * Math.sin(tiltX);
+    }
+    updateDot(od1, Math.PI * 0.22, 0.44);
+    updateDot(od2, Math.PI * 0.36, 0.27);
+    updateDot(od3, Math.PI * 0.14, 0.15);
+
+    /* Gentle floating */
+    scene.position.y = Math.sin(ct * 0.38) * 0.045;
+
+    /* Camera parallax drift */
+    camera.position.x += (tmx * 0.55 - camera.position.x) * 0.038;
+    camera.position.y += (-tmy * 0.38 - camera.position.y) * 0.038;
+    camera.lookAt(scene.position);
+
+    /* Particle slow drift */
+    particles.rotation.y = ct * 0.007;
+
+    renderer.render(scene, camera);
+  })();
+
+  /* Resize */
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+
+  /* ============================================================
+     COUNTER — Calculate elapsed time
+  ============================================================ */
+  function calcElapsed() {
+    const start = new Date('2023-01-18T00:00:00');
+    const now   = new Date();
+
+    const totalDays = Math.floor((now - start) / 86400000);
+
+    let y = now.getFullYear() - start.getFullYear();
+    let m = now.getMonth()    - start.getMonth();
+    let d = now.getDate()     - start.getDate();
+
+    if (d < 0) {
+      m--;
+      d += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    }
+    if (m < 0) { y--; m += 12; }
+
+    return { totalDays, y, m, d };
+  }
+
+  /* GSAP-powered number counter */
+  function animateCounter(elId, target, duration, delay) {
+    const el  = document.getElementById(elId);
+    const obj = { val: 0 };
+    gsap.to(obj, {
+      val: target,
+      duration,
+      delay,
+      ease: 'power3.out',
+      onUpdate: () => {
+        el.textContent = Math.round(obj.val).toLocaleString();
+      },
+      onComplete: () => {
+        el.textContent = target.toLocaleString();
+      },
+    });
+  }
+
+  /* Corner date display */
+  const now = new Date();
+  document.getElementById('corner-bl').textContent =
+    now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+
+  /* ============================================================
+     ENTRANCE ANIMATION — Staggered GSAP reveals
+  ============================================================ */
+  const { totalDays, y, m, d } = calcElapsed();
+
+  function entrance() {
+    const header   = document.getElementById('header');
+    const orrery   = document.getElementById('orrery');
+    const statsBar = document.getElementById('statsBar');
+    const legend   = document.getElementById('legend');
+
+    /* Header fades in from above */
+    gsap.to(header, {
+      opacity: 1, y: 0,
+      duration: 1.3, delay: 0.4,
+      ease: 'power2.out',
+    });
+
+    /* Orrery fades in */
+    gsap.to(orrery, {
+      opacity: 1,
+      duration: 1.5, delay: 0.8,
+      ease: 'power2.out',
+    });
+
+    /* Main counter animates */
+    animateCounter('totalDays', totalDays, 2.8, 1.0);
+
+    /* Stats bar rises in */
+    gsap.to(statsBar, {
+      opacity: 1, y: 0,
+      duration: 1.2, delay: 1.5,
+      ease: 'power2.out',
+    });
+
+    /* Individual stat counters */
+    animateCounter('years',  y, 1.6, 1.7);
+    animateCounter('months', m, 2.0, 1.9);
+    animateCounter('days',   d, 2.3, 2.1);
+
+    /* Legend appears last */
+    gsap.to(legend, {
+      opacity: 0.65, delay: 3.0,
+      duration: 1.0, ease: 'power1.out',
+    });
+  }
+
+  window.addEventListener('load', entrance);
+  </script>
+
+</body>
+</html>
